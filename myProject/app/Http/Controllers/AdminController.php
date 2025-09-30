@@ -3,44 +3,40 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\Category;
+use App\Http\Requests\StorePostRequest;
+use App\Http\Requests\UpdatePostRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $posts = Post::with('user')->orderBy('created_at', 'desc')->paginate(10);
-        return view('admin.list-post', compact('posts'));
+        $query = Post::with(['user', 'category']);
+        
+        // Handle trashed posts view
+        if ($request->get('show') === 'trashed') {
+            $query->onlyTrashed();
+        }
+        
+        $posts = $query->orderBy('created_at', 'desc')->paginate(10);
+        $trashedCount = Post::onlyTrashed()->count();
+        
+        return view('admin.list-post', compact('posts', 'trashedCount'));
     }
 
     public function create()
     {
-        return view('admin.add-post');
+        $categories = Category::all();
+        return view('admin.add-post', compact('categories'));
     }
 
-    public function store(Request $request)
+    public function store(StorePostRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'author' => 'nullable|string|max:255',
-            'status' => 'required|in:pending,approved,rejected'
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-
-        Post::create([
-            'title' => $request->title,
-            'content' => $request->input('content'),
-            'author' => $request->author,
-            'status' => $request->status,
-            'user_id' => auth()->id()
-        ]);
+        $validated = $request->validated();
+        $validated['user_id'] = auth()->id();
+        
+        Post::create($validated);
 
         return redirect()->route('admin.posts.index')
             ->with('success', 'Post created successfully!');
@@ -48,30 +44,13 @@ class AdminController extends Controller
 
     public function edit(Post $post)
     {
-        return view('admin.edit-post', compact('post'));
+        $categories = Category::all();
+        return view('admin.edit-post', compact('post', 'categories'));
     }
 
-    public function update(Request $request, Post $post)
+    public function update(UpdatePostRequest $request, Post $post)
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'author' => 'nullable|string|max:255',
-            'status' => 'required|in:pending,approved,rejected'
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-
-        $post->update([
-            'title' => $request->title,
-            'content' => $request->input('content'),
-            'author' => $request->author,
-            'status' => $request->status
-        ]);
+        $post->update($request->validated());
 
         return redirect()->route('admin.posts.index')
             ->with('success', 'Post updated successfully!');
@@ -79,6 +58,42 @@ class AdminController extends Controller
 
     public function show(Post $post)
     {
+        $post->load(['user', 'category', 'comments.user']);
         return view('admin.show-post', compact('post'));
+    }
+
+    /**
+     * Soft delete a post.
+     */
+    public function destroy(Post $post)
+    {
+        $post->delete();
+        
+        return redirect()->route('admin.posts.index')
+            ->with('success', 'Post moved to trash successfully!');
+    }
+
+    /**
+     * Restore a soft deleted post.
+     */
+    public function restore($id)
+    {
+        $post = Post::onlyTrashed()->findOrFail($id);
+        $post->restore();
+        
+        return redirect()->route('admin.posts.index')
+            ->with('success', 'Post restored successfully!');
+    }
+
+    /**
+     * Permanently delete a post.
+     */
+    public function forceDelete($id)
+    {
+        $post = Post::onlyTrashed()->findOrFail($id);
+        $post->forceDelete();
+        
+        return redirect()->route('admin.posts.index', ['show' => 'trashed'])
+            ->with('success', 'Post permanently deleted!');
     }
 }

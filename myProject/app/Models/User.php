@@ -21,11 +21,17 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     public function posts()
     {
         return $this->hasMany(Post::class);
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
     }
 
     public function isAdmin()

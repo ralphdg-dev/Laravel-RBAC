@@ -20,9 +20,21 @@
                 @endif
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="mb-0">
-                        <i class="bi bi-list-ul me-2"></i>All Posts
-                    </h2>
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="bi bi-list-ul me-2"></i>All Posts
+                        </h2>
+                        <div class="mt-2">
+                            <a href="{{ route('admin.posts.index') }}" 
+                               class="btn btn-sm {{ !request('show') ? 'btn-primary' : 'btn-outline-primary' }}">
+                                Active Posts
+                            </a>
+                            <a href="{{ route('admin.posts.index', ['show' => 'trashed']) }}" 
+                               class="btn btn-sm {{ request('show') === 'trashed' ? 'btn-danger' : 'btn-outline-danger' }}">
+                                Trash ({{ $trashedCount }})
+                            </a>
+                        </div>
+                    </div>
                     <a href="{{ route('admin.posts.create') }}" class="btn btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Add New Post
                     </a>
@@ -36,11 +48,12 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th>Title</th>
+                                            <th>Category</th>
                                             <th>Author</th>
                                             <th>Status</th>
                                             <th>Created By</th>
                                             <th>Created</th>
-                                            <th>Actions</th>
+                                            <th width="120">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -52,6 +65,13 @@
                                                     <small class="text-muted">
                                                         {{ Str::limit($post->content, 50) }}
                                                     </small>
+                                                </td>
+                                                <td>
+                                                    @if($post->category)
+                                                        <span class="badge bg-info">{{ $post->category->name }}</span>
+                                                    @else
+                                                        <span class="text-muted">Uncategorized</span>
+                                                    @endif
                                                 </td>
                                                 <td>{{ $post->author ?: 'N/A' }}</td>
                                                 <td>
@@ -66,16 +86,65 @@
                                                 <td>{{ $post->user->name }}</td>
                                                 <td>{{ $post->created_at->format('M d, Y') }}</td>
                                                 <td>
-                                                    <div class="btn-group btn-group-sm" role="group">
-                                                        <a href="{{ route('admin.posts.show', $post) }}"
-                                                            class="btn btn-outline-info">
-                                                            <i class="bi bi-eye"></i>
-                                                        </a>
-                                                        <a href="{{ route('admin.posts.edit', $post) }}"
-                                                            class="btn btn-outline-primary">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </a>
-                                                    </div>
+                                                    @if($post->trashed())
+                                                        {{-- Actions for trashed posts --}}
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                                <i class="bi bi-three-dots"></i>
+                                                            </button>
+                                                            <ul class="dropdown-menu">
+                                                                <li>
+                                                                    <form action="{{ route('admin.posts.restore', $post->id) }}" method="POST" class="d-inline">
+                                                                        @csrf
+                                                                        <button type="submit" class="dropdown-item text-success">
+                                                                            <i class="bi bi-arrow-clockwise me-2"></i>Restore
+                                                                        </button>
+                                                                    </form>
+                                                                </li>
+                                                                <li><hr class="dropdown-divider"></li>
+                                                                <li>
+                                                                    <form action="{{ route('admin.posts.force-delete', $post->id) }}" method="POST" class="d-inline" 
+                                                                          onsubmit="return confirm('Are you sure you want to permanently delete this post? This action cannot be undone.')">
+                                                                        @csrf
+                                                                        @method('DELETE')
+                                                                        <button type="submit" class="dropdown-item text-danger">
+                                                                            <i class="bi bi-trash3 me-2"></i>Delete Permanently
+                                                                        </button>
+                                                                    </form>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    @else
+                                                        {{-- Actions for active posts --}}
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                                <i class="bi bi-three-dots"></i>
+                                                            </button>
+                                                            <ul class="dropdown-menu">
+                                                                <li>
+                                                                    <a class="dropdown-item" href="{{ route('admin.posts.show', $post) }}">
+                                                                        <i class="bi bi-eye me-2"></i>View
+                                                                    </a>
+                                                                </li>
+                                                                <li>
+                                                                    <a class="dropdown-item" href="{{ route('admin.posts.edit', $post) }}">
+                                                                        <i class="bi bi-pencil me-2"></i>Edit
+                                                                    </a>
+                                                                </li>
+                                                                <li><hr class="dropdown-divider"></li>
+                                                                <li>
+                                                                    <form action="{{ route('admin.posts.destroy', $post) }}" method="POST" class="d-inline" 
+                                                                          onsubmit="return confirm('Are you sure you want to move this post to trash?')">
+                                                                        @csrf
+                                                                        @method('DELETE')
+                                                                        <button type="submit" class="dropdown-item text-warning">
+                                                                            <i class="bi bi-trash me-2"></i>Move to Trash
+                                                                        </button>
+                                                                    </form>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    @endif
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -84,8 +153,17 @@
                             </div>
 
                             <div class="d-flex justify-content-center">
-                                {{ $posts->links() }}
+                                {{ $posts->appends(request()->query())->links('pagination::bootstrap-4', ['class' => 'pagination-sm']) }}
                             </div>
+                            
+                            <!-- Pagination Info -->
+                            @if($posts->hasPages())
+                                <div class="text-center mt-2">
+                                    <small class="text-muted">
+                                        Showing {{ $posts->firstItem() }} to {{ $posts->lastItem() }} of {{ $posts->total() }} posts
+                                    </small>
+                                </div>
+                            @endif
                         @else
                             <div class="text-center py-5">
                                 <i class="bi bi-inbox display-1 text-muted"></i>
