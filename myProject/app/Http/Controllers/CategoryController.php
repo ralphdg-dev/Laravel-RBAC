@@ -8,9 +8,6 @@ use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
         $query = Category::withCount('posts');
@@ -25,17 +22,11 @@ class CategoryController extends Controller
         return view('admin.categories.index', compact('categories', 'trashedCount'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         return view('admin.categories.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -53,9 +44,6 @@ class CategoryController extends Controller
             ->with('success', 'Category created successfully!');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Category $category)
     {
         $category->load(['posts' => function($query) {
@@ -64,18 +52,10 @@ class CategoryController extends Controller
         
         return view('admin.categories.show', compact('category'));
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Category $category)
     {
         return view('admin.categories.edit', compact('category'));
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Category $category)
     {
         $request->validate([
@@ -92,10 +72,6 @@ class CategoryController extends Controller
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category updated successfully!');
     }
-
-    /**
-     * Soft delete the specified resource.
-     */
     public function destroy(Category $category)
     {
         $category->delete();
@@ -103,10 +79,6 @@ class CategoryController extends Controller
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category moved to trash successfully!');
     }
-
-    /**
-     * Restore a soft deleted category.
-     */
     public function restore($id)
     {
         $category = Category::onlyTrashed()->findOrFail($id);
@@ -115,10 +87,6 @@ class CategoryController extends Controller
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category restored successfully!');
     }
-
-    /**
-     * Permanently delete a category.
-     */
     public function forceDelete($id)
     {
         $category = Category::onlyTrashed()->findOrFail($id);

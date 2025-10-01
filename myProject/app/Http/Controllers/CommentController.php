@@ -8,9 +8,6 @@ use Illuminate\Http\Request;
 
 class CommentController extends Controller
 {
-    /**
-     * Store a newly created comment.
-     */
     public function store(Request $request, Post $post)
     {
         $validated = $request->validate([
@@ -28,13 +25,8 @@ class CommentController extends Controller
         return redirect()->back()
             ->with('success', 'Comment added successfully!');
     }
-
-    /**
-     * Update the specified comment.
-     */
     public function update(Request $request, Comment $comment)
     {
-        // Check if user can edit this comment
         if (auth()->id() !== $comment->user_id && (!auth()->user() || !auth()->user()->isAdmin())) {
             abort(403, 'Unauthorized action.');
         }
@@ -50,13 +42,8 @@ class CommentController extends Controller
         return redirect()->back()
             ->with('success', 'Comment updated successfully!');
     }
-
-    /**
-     * Soft delete the specified comment.
-     */
     public function destroy(Comment $comment)
     {
-        // Check if user can delete this comment
         if (auth()->id() !== $comment->user_id && (!auth()->user() || !auth()->user()->isAdmin())) {
             abort(403, 'Unauthorized action.');
         }
@@ -66,15 +53,9 @@ class CommentController extends Controller
         return redirect()->back()
             ->with('success', 'Comment deleted successfully!');
     }
-
-    /**
-     * Restore a soft deleted comment.
-     */
     public function restore($id)
     {
         $comment = Comment::onlyTrashed()->findOrFail($id);
-        
-        // Only admins can restore comments
         if (!auth()->user() || !auth()->user()->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }
@@ -85,14 +66,10 @@ class CommentController extends Controller
             ->with('success', 'Comment restored successfully!');
     }
 
-    /**
-     * Permanently delete a comment.
-     */
     public function forceDelete($id)
     {
         $comment = Comment::onlyTrashed()->findOrFail($id);
         
-        // Only admins can permanently delete comments
         if (!auth()->user() || !auth()->user()->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }

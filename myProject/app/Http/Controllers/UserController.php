@@ -66,20 +66,17 @@ class UserController extends Controller
         $posts = Post::where('status', 'approved')
             ->with(['user', 'category'])
             ->orderBy('created_at', 'desc')
-            ->paginate(4); // 4 posts per page
+            ->paginate(4); 
         return view('user.dashboard', compact('posts'));
     }
-
     public function edit(Post $post)
     {
         if ($post->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
         }
-
         $categories = \App\Models\Category::all();
         return view('user.edit-post', compact('post', 'categories'));
     }
-
     public function update(Request $request, Post $post)
     {
         if ($post->user_id !== auth()->id()) {
@@ -98,7 +95,7 @@ class UserController extends Controller
             'content' => $request->input('content'),
             'author' => $request->author,
             'category_id' => $request->category_id,
-            'status' => 'pending', // Reset to pending when user edits
+            'status' => 'pending', 
         ]);
         $post->save();
 

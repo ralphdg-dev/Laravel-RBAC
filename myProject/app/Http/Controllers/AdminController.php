@@ -14,7 +14,6 @@ class AdminController extends Controller
     {
         $query = Post::with(['user', 'category']);
         
-        // Handle trashed posts view
         if ($request->get('show') === 'trashed') {
             $query->onlyTrashed();
         }
@@ -22,7 +21,6 @@ class AdminController extends Controller
         $posts = $query->orderBy('created_at', 'desc')->paginate(10);
         $trashedCount = Post::onlyTrashed()->count();
         
-        // Check if this is being called from dashboard route
         if ($request->route()->getName() === 'admin.dashboard') {
             return view('admin.dashboard', compact('posts', 'trashedCount'));
         }
@@ -67,9 +65,6 @@ class AdminController extends Controller
         return view('admin.show-post', compact('post'));
     }
 
-    /**
-     * Soft delete a post.
-     */
     public function destroy(Post $post)
     {
         $post->delete();
@@ -78,9 +73,6 @@ class AdminController extends Controller
             ->with('success', 'Post moved to trash successfully!');
     }
 
-    /**
-     * Restore a soft deleted post.
-     */
     public function restore($id)
     {
         $post = Post::onlyTrashed()->findOrFail($id);
@@ -90,9 +82,6 @@ class AdminController extends Controller
             ->with('success', 'Post restored successfully!');
     }
 
-    /**
-     * Permanently delete a post.
-     */
     public function forceDelete($id)
     {
         $post = Post::onlyTrashed()->findOrFail($id);
