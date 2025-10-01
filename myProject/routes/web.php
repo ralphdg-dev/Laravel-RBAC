@@ -14,7 +14,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     if (auth()->user()->isAdmin()) {
-        return redirect()->route('admin.posts.index');
+        return redirect()->route('admin.dashboard');
     }
     return redirect()->route('user.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
@@ -27,8 +27,11 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', function () {
-        return redirect()->route('admin.posts.index');
+        return redirect()->route('admin.dashboard');
     });
+    
+    // Dashboard route
+    Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
     
     // Posts routes
     Route::get('/posts', [AdminController::class, 'index'])->name('posts.index');

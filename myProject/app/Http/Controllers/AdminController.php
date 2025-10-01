@@ -22,6 +22,11 @@ class AdminController extends Controller
         $posts = $query->orderBy('created_at', 'desc')->paginate(10);
         $trashedCount = Post::onlyTrashed()->count();
         
+        // Check if this is being called from dashboard route
+        if ($request->route()->getName() === 'admin.dashboard') {
+            return view('admin.dashboard', compact('posts', 'trashedCount'));
+        }
+        
         return view('admin.list-post', compact('posts', 'trashedCount'));
     }
 

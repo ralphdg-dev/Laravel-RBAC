@@ -14,17 +14,15 @@ class UserController extends Controller
             abort(404, 'Post not found or not approved.');
         }
         
-        // Load relationships for the post
         $post->load([
             'category',
             'user'
         ]);
         
-        // Paginate comments separately for better performance
         $comments = $post->topLevelComments()
             ->with(['user', 'replies.user'])
             ->orderBy('created_at', 'desc')
-            ->paginate(5); // 5 comments per page
+            ->paginate(5); 
         
         return view('user.post', compact('post', 'comments'));
     }
@@ -74,7 +72,6 @@ class UserController extends Controller
 
     public function edit(Post $post)
     {
-        // Check if user owns this post
         if ($post->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
         }
@@ -85,7 +82,6 @@ class UserController extends Controller
 
     public function update(Request $request, Post $post)
     {
-        // Check if user owns this post
         if ($post->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
         }
@@ -112,7 +108,6 @@ class UserController extends Controller
 
     public function destroy(Post $post)
     {
-        // Check if user owns this post
         if ($post->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
         }
