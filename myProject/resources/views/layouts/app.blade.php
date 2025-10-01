@@ -143,9 +143,13 @@
             <div class="col-lg-3 col-xl-2 px-0 sidebar">
                 @if(auth()->user()->role === 'admin')
                     <h6>Admin Dashboard</h6>
-                    <a href="{{ route('admin.posts.index') }}"
-                        class="sidebar-link {{ request()->routeIs('admin.posts.*') ? 'active' : '' }}">
-                        <i class="bi bi-file-text sidebar-icon"></i> Manage Posts
+                    <a href="{{ route('admin.dashboard') }}"
+                        class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                        <i class="bi bi-speedometer2 sidebar-icon"></i> Dashboard
+                    </a>
+                    <a href="{{ route('admin.users.index') }}"
+                        class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                        <i class="bi bi-people sidebar-icon"></i> Manage Users
                     </a>
                     <a href="{{ route('admin.posts.create') }}"
                         class="sidebar-link {{ request()->routeIs('admin.posts.create') ? 'active' : '' }}">
