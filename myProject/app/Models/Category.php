@@ -15,10 +15,6 @@ class Category extends Model
         'description',
         'slug',
     ];
-
-    /**
-     * Get the posts for the category.
-     */
     public function posts()
     {
         return $this->hasMany(Post::class);
