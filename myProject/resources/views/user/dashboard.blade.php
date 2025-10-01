@@ -99,13 +99,9 @@
                             </div>
                         @endforeach
                     </div>
-
-                    <!-- Pagination -->
                     <div class="d-flex justify-content-center mt-4">
                         {{ $posts->appends(request()->query())->links('pagination::bootstrap-4', ['class' => 'pagination-sm']) }}
                     </div>
-                    
-                    <!-- Pagination Info -->
                     @if($posts->hasPages())
                         <div class="text-center mt-2">
                             <small class="text-muted">
@@ -129,7 +125,6 @@
         </div>
     </div>
 
-    <!-- Custom Pagination Styling -->
     <style>
         .pagination-sm .page-link {
             padding: 0.375rem 0.75rem;

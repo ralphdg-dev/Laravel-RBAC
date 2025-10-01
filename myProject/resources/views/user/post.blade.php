@@ -61,7 +61,6 @@
                     </div>
                 </article>
 
-                <!-- Comments Section -->
                 <div class="card mt-4">
                     <div class="card-header">
                         <h5 class="mb-0">
@@ -83,8 +82,6 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>
                         @endif
-
-                        <!-- Add Comment Form -->
                         @auth
                             <form action="{{ route('comments.store', $post) }}" method="POST" class="mb-4">
                                 @csrf
@@ -108,7 +105,6 @@
                             </div>
                         @endauth
 
-                        <!-- Comments List -->
                         @if($comments->count() > 0)
                             <div class="comments-list">
                                 @foreach($comments as $comment)
@@ -155,8 +151,6 @@
                                                 <div class="comment-content" id="comment-content-{{ $comment->id }}">
                                                     <p class="mb-2">{{ $comment->content }}</p>
                                                 </div>
-                                                
-                                                <!-- Edit Comment Form (Hidden by default) -->
                                                 <div class="edit-comment-form d-none" id="edit-form-{{ $comment->id }}">
                                                     <form action="{{ route('comments.update', $comment) }}" method="POST">
                                                         @csrf
@@ -175,14 +169,11 @@
                                                     </form>
                                                 </div>
 
-                                                <!-- Reply Button -->
                                                 @auth
                                                     <button class="btn btn-sm btn-outline-primary mt-2" onclick="toggleReplyForm({{ $comment->id }})">
                                                         <i class="bi bi-reply me-1"></i>Reply
                                                     </button>
                                                 @endauth
-
-                                                <!-- Reply Form (Hidden by default) -->
                                                 @auth
                                                     <div class="reply-form mt-3 d-none" id="reply-form-{{ $comment->id }}">
                                                         <form action="{{ route('comments.store', $post) }}" method="POST">
@@ -202,8 +193,6 @@
                                                         </form>
                                                     </div>
                                                 @endauth
-
-                                                <!-- Nested Replies -->
                                                 @if($comment->replies->count() > 0)
                                                     <div class="replies mt-3 ms-4">
                                                         @foreach($comment->replies as $reply)
@@ -251,7 +240,6 @@
                                                                             <p class="mb-1">{{ $reply->content }}</p>
                                                                         </div>
                                                                         
-                                                                        <!-- Edit Reply Form (Hidden by default) -->
                                                                         <div class="edit-comment-form d-none" id="edit-form-{{ $reply->id }}">
                                                                             <form action="{{ route('comments.update', $reply) }}" method="POST">
                                                                                 @csrf
@@ -281,12 +269,12 @@
                                 @endforeach
                             </div>
                             
-                            <!-- Comments Pagination -->
+
                             <div class="d-flex justify-content-center mt-4">
                                 {{ $comments->appends(request()->query())->links('pagination::bootstrap-4', ['class' => 'pagination-sm']) }}
                             </div>
                             
-                            <!-- Pagination Info -->
+
                             @if($comments->hasPages())
                                 <div class="text-center mt-2">
                                     <small class="text-muted">
@@ -306,7 +294,7 @@
         </div>
     </div>
 
-    <!-- Custom Pagination Styling -->
+
     <style>
         .pagination-sm .page-link {
             padding: 0.375rem 0.75rem;
