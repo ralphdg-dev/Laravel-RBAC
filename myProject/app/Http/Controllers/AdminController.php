@@ -95,8 +95,6 @@ class AdminController extends Controller
     public function users(Request $request)
     {
         $query = User::query();
-        
-        // Search functionality
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -119,7 +117,6 @@ class AdminController extends Controller
     {
         return view('admin.users.create');
     }
-
     public function storeUser(Request $request)
     {
         $validated = $request->validate([
