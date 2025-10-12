@@ -111,7 +111,7 @@
                                                             </ul>
                                                         </div>
                                                     @else
-                                                        {{-- Actions for active posts --}}
+
                                                         <div class="dropdown {{ $posts->count() <= 3 ? 'dropup' : '' }}">
                                                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                                                 <i class="bi bi-three-dots"></i>
@@ -175,7 +175,6 @@
                                 {{ $posts->appends(request()->query())->links('pagination::bootstrap-4', ['class' => 'pagination-sm']) }}
                             </div>
                             
-                            <!-- Pagination Info -->
                             @if($posts->hasPages())
                                 <div class="text-center mt-2">
                                     <small class="text-muted">
