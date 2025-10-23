@@ -18,6 +18,28 @@
                         <a href="{{ route('admin.posts.edit', $post) }}" class="btn btn-primary">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </a>
+                        
+                        @if($post->status !== 'approved')
+                        <form action="{{ route('admin.posts.updateStatus', $post) }}" method="POST" class="d-inline">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="approved">
+                            <button type="submit" class="btn btn-success" onclick="return confirm('Approve this post?')">
+                                <i class="bi bi-check-circle me-1"></i>Approve
+                            </button>
+                        </form>
+                        @endif
+                        
+                        @if($post->status !== 'rejected')
+                        <form action="{{ route('admin.posts.updateStatus', $post) }}" method="POST" class="d-inline">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="rejected">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Reject this post?')">
+                                <i class="bi bi-x-circle me-1"></i>Reject
+                            </button>
+                        </form>
+                        @endif
                     </div>
                 </div>
 

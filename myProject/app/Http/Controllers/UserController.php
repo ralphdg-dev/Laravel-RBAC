@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -33,13 +34,16 @@ class UserController extends Controller
         return view('user.submit-post', compact('categories'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ImageService $imageService)
     {
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'author' => 'nullable|string|max:255',
-            'category_id' => 'nullable|exists:categories,id'
+            'category_id' => 'nullable|exists:categories,id',
+            'featured_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'featured_image_alt' => 'nullable|string|max:255',
+            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
         ]);
 
         if ($validator->fails()) {
@@ -48,14 +52,44 @@ class UserController extends Controller
                 ->withInput();
         }
 
-        Post::create([
+        $postData = [
             'title' => $request->title,
             'content' => $request->input('content'),
             'author' => $request->author,
             'category_id' => $request->category_id,
             'status' => 'pending',
             'user_id' => auth()->id()
-        ]);
+        ];
+
+        if ($request->hasFile('featured_image')) {
+            try {
+                $postData['featured_image'] = $imageService->uploadImage(
+                    $request->file('featured_image'),
+                    config('images.featured_image')
+                );
+                $postData['featured_image_alt'] = $request->featured_image_alt;
+            } catch (\Exception $e) {
+                return redirect()->back()
+                    ->withErrors(['featured_image' => 'Failed to upload featured image: ' . $e->getMessage()])
+                    ->withInput();
+            }
+        }
+
+        if ($request->hasFile('gallery_images')) {
+            try {
+                $galleryPaths = $imageService->uploadMultipleImages(
+                    $request->file('gallery_images'),
+                    config('images.gallery_image')
+                );
+                $postData['gallery_images'] = $galleryPaths;
+            } catch (\Exception $e) {
+                return redirect()->back()
+                    ->withErrors(['gallery_images' => 'Failed to upload gallery images: ' . $e->getMessage()])
+                    ->withInput();
+            }
+        }
+
+        Post::create($postData);
 
         return redirect()->route('user.submit')
             ->with('success', 'Post submitted successfully! It will be reviewed by an admin.');
@@ -77,7 +111,7 @@ class UserController extends Controller
         $categories = \App\Models\Category::all();
         return view('user.edit-post', compact('post', 'categories'));
     }
-    public function update(Request $request, Post $post)
+    public function update(Request $request, Post $post, ImageService $imageService)
     {
         if ($post->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
@@ -88,25 +122,96 @@ class UserController extends Controller
             'content' => 'required|string|min:10',
             'author' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
+            'featured_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'featured_image_alt' => 'nullable|string|max:255',
+            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'remove_featured_image' => 'nullable|boolean',
+            'remove_gallery_images' => 'nullable|array'
         ]);
 
-        $post->fill([
+        $updateData = [
             'title' => $request->title,
             'content' => $request->input('content'),
             'author' => $request->author,
             'category_id' => $request->category_id,
-            'status' => 'pending', 
-        ]);
+            'status' => 'pending',
+        ];
+
+        if ($request->remove_featured_image && $post->featured_image) {
+            $imageService->deleteImage($post->featured_image);
+            $updateData['featured_image'] = null;
+            $updateData['featured_image_alt'] = null;
+        }
+
+        if ($request->hasFile('featured_image')) {
+            if ($post->featured_image) {
+                $imageService->deleteImage($post->featured_image);
+            }
+            
+            try {
+                $updateData['featured_image'] = $imageService->uploadImage(
+                    $request->file('featured_image'),
+                    config('images.featured_image')
+                );
+                $updateData['featured_image_alt'] = $request->featured_image_alt;
+            } catch (\Exception $e) {
+                return redirect()->back()
+                    ->withErrors(['featured_image' => 'Failed to upload featured image: ' . $e->getMessage()])
+                    ->withInput();
+            }
+        } elseif ($request->featured_image_alt && !$request->remove_featured_image) {
+            $updateData['featured_image_alt'] = $request->featured_image_alt;
+        }
+
+        if ($request->remove_gallery_images && $post->gallery_images) {
+            $currentGallery = $post->gallery_images ?? [];
+            $toRemove = $request->remove_gallery_images;
+            
+            foreach ($toRemove as $imageToRemove) {
+                if (in_array($imageToRemove, $currentGallery)) {
+                    $imageService->deleteImage($imageToRemove);
+                    $currentGallery = array_values(array_diff($currentGallery, [$imageToRemove]));
+                }
+            }
+            
+            $updateData['gallery_images'] = $currentGallery;
+        }
+
+        if ($request->hasFile('gallery_images')) {
+            try {
+                $newGalleryPaths = $imageService->uploadMultipleImages(
+                    $request->file('gallery_images'),
+                    config('images.gallery_image')
+                );
+                
+                $currentGallery = $updateData['gallery_images'] ?? $post->gallery_images ?? [];
+                $updateData['gallery_images'] = array_merge($currentGallery, $newGalleryPaths);
+            } catch (\Exception $e) {
+                return redirect()->back()
+                    ->withErrors(['gallery_images' => 'Failed to upload gallery images: ' . $e->getMessage()])
+                    ->withInput();
+            }
+        }
+
+        $post->fill($updateData);
         $post->save();
 
         return redirect()->route('user.dashboard')
             ->with('success', 'Post updated successfully! It will be reviewed by an admin.');
     }
 
-    public function destroy(Post $post)
+    public function destroy(Post $post, ImageService $imageService)
     {
         if ($post->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
+        }
+
+        if ($post->featured_image) {
+            $imageService->deleteImage($post->featured_image);
+        }
+        
+        if ($post->gallery_images) {
+            $imageService->deleteMultipleImages($post->gallery_images);
         }
 
         $post->delete();

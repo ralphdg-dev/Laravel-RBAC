@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Admin\PostController as AdminPostController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CommentController;
@@ -34,17 +35,18 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
     
     // Posts routes
-    Route::get('/posts', [AdminController::class, 'index'])->name('posts.index');
-    Route::get('/posts/create', [AdminController::class, 'create'])->name('posts.create');
-    Route::post('/posts', [AdminController::class, 'store'])->name('posts.store');
-    Route::get('/posts/{post}', [AdminController::class, 'show'])->name('posts.show');
-    Route::get('/posts/{post}/edit', [AdminController::class, 'edit'])->name('posts.edit');
-    Route::put('/posts/{post}', [AdminController::class, 'update'])->name('posts.update');
-    Route::delete('/posts/{post}', [AdminController::class, 'destroy'])->name('posts.destroy');
+    Route::get('/posts', [AdminPostController::class, 'index'])->name('posts.index');
+    Route::get('/posts/create', [AdminPostController::class, 'create'])->name('posts.create');
+    Route::post('/posts', [AdminPostController::class, 'store'])->name('posts.store');
+    Route::get('/posts/{post}', [AdminPostController::class, 'show'])->name('posts.show');
+    Route::get('/posts/{post}/edit', [AdminPostController::class, 'edit'])->name('posts.edit');
+    Route::put('/posts/{post}', [AdminPostController::class, 'update'])->name('posts.update');
+    Route::patch('/posts/{post}/status', [AdminPostController::class, 'updateStatus'])->name('posts.updateStatus');
+    Route::delete('/posts/{post}', [AdminPostController::class, 'destroy'])->name('posts.destroy');
     
     // Soft delete routes for posts
-    Route::post('/posts/{id}/restore', [AdminController::class, 'restore'])->name('posts.restore');
-    Route::delete('/posts/{id}/force-delete', [AdminController::class, 'forceDelete'])->name('posts.force-delete');
+    Route::post('/posts/{id}/restore', [AdminPostController::class, 'restore'])->name('posts.restore');
+    Route::delete('/posts/{id}/force-delete', [AdminPostController::class, 'forceDelete'])->name('posts.force-delete');
     
     // Categories routes
     Route::resource('categories', CategoryController::class);
@@ -108,9 +110,16 @@ Route::middleware(['auth', 'role:user'])->prefix('user')->name('user.')->group(f
 
 
 Route::get('/blog', function () {
-    $posts = \App\Models\Post::where('status', 'approved')
-        ->orderBy('created_at', 'desc')
-        ->paginate(12);
+    $query = \App\Models\Post::where('status', 'approved')
+        ->with(['category', 'user']);
+    
+    // Filter by category if provided
+    if (request('category')) {
+        $query->where('category_id', request('category'));
+    }
+    
+    $posts = $query->orderBy('created_at', 'desc')->paginate(12);
+    
     return view('public.blog', compact('posts'));
 })->name('public.blog');
 

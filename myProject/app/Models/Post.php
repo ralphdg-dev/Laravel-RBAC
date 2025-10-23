@@ -17,6 +17,13 @@ class Post extends Model
         'status',
         'user_id',
         'category_id',
+        'featured_image',
+        'featured_image_alt',
+        'gallery_images',
+    ];
+
+    protected $casts = [
+        'gallery_images' => 'array',
     ];
     public function user()
     {
@@ -33,5 +40,26 @@ class Post extends Model
     public function topLevelComments()
     {
         return $this->hasMany(Comment::class)->whereNull('parent_id');
+    }
+
+    public function getFeaturedImageUrlAttribute()
+    {
+        return $this->featured_image ? asset('storage/' . $this->featured_image) : null;
+    }
+
+    public function getGalleryImageUrlsAttribute()
+    {
+        if (!$this->gallery_images) {
+            return [];
+        }
+        
+        return collect($this->gallery_images)->map(function ($image) {
+            return asset('storage/' . $image);
+        })->toArray();
+    }
+
+    public function hasImages()
+    {
+        return $this->featured_image || ($this->gallery_images && count($this->gallery_images) > 0);
     }
 }

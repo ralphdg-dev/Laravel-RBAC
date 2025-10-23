@@ -32,6 +32,12 @@
                         @foreach($posts as $post)
                             <div class="col">
                                 <div class="card h-100 shadow-sm">
+                                    @if($post->featured_image)
+                                    <img src="{{ $post->featured_image_url }}" 
+                                        alt="{{ $post->featured_image_alt ?: $post->title }}" 
+                                        class="card-img-top" 
+                                        style="height: 200px; object-fit: cover;">
+                                    @endif
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <h5 class="card-title mb-0">{{ $post->title }}</h5>
@@ -69,6 +75,20 @@
                                         <p class="card-text post-content">
                                             {{ Str::limit($post->content, 120) }}
                                         </p>
+                                        @if($post->hasImages())
+                                        <div class="mb-2">
+                                            @if($post->featured_image)
+                                                <span class="badge bg-secondary me-1">
+                                                    <i class="bi bi-image me-1"></i>Featured Image
+                                                </span>
+                                            @endif
+                                            @if($post->gallery_images && count($post->gallery_images) > 0)
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-images me-1"></i>{{ count($post->gallery_images) }} Gallery Images
+                                                </span>
+                                            @endif
+                                        </div>
+                                        @endif
                                         <div class="mt-auto">
                                             <div class="d-flex justify-content-between align-items-center mb-3">
                                                 <div>
