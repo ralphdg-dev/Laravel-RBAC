@@ -41,9 +41,12 @@ class UserController extends Controller
             'content' => 'required|string',
             'author' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
-            'featured_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'featured_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:3072',
             'featured_image_alt' => 'nullable|string|max:255',
-            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+            'featured_image_greyscale' => 'nullable|boolean',
+            'gallery_images' => 'nullable|array|max:10',
+            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:3072',
+            'gallery_images_greyscale' => 'nullable|boolean'
         ]);
 
         if ($validator->fails()) {
@@ -63,9 +66,13 @@ class UserController extends Controller
 
         if ($request->hasFile('featured_image')) {
             try {
+                $imageOptions = array_merge(
+                    config('images.featured_image'),
+                    ['greyscale' => $request->boolean('featured_image_greyscale')]
+                );
                 $postData['featured_image'] = $imageService->uploadImage(
                     $request->file('featured_image'),
-                    config('images.featured_image')
+                    $imageOptions
                 );
                 $postData['featured_image_alt'] = $request->featured_image_alt;
             } catch (\Exception $e) {
@@ -77,9 +84,13 @@ class UserController extends Controller
 
         if ($request->hasFile('gallery_images')) {
             try {
+                $galleryOptions = array_merge(
+                    config('images.gallery_image'),
+                    ['greyscale' => $request->boolean('gallery_images_greyscale')]
+                );
                 $galleryPaths = $imageService->uploadMultipleImages(
                     $request->file('gallery_images'),
-                    config('images.gallery_image')
+                    $galleryOptions
                 );
                 $postData['gallery_images'] = $galleryPaths;
             } catch (\Exception $e) {
@@ -122,9 +133,12 @@ class UserController extends Controller
             'content' => 'required|string|min:10',
             'author' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
-            'featured_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'featured_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:3072',
             'featured_image_alt' => 'nullable|string|max:255',
-            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'featured_image_greyscale' => 'nullable|boolean',
+            'gallery_images' => 'nullable|array|max:10',
+            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:3072',
+            'gallery_images_greyscale' => 'nullable|boolean',
             'remove_featured_image' => 'nullable|boolean',
             'remove_gallery_images' => 'nullable|array'
         ]);
@@ -149,9 +163,13 @@ class UserController extends Controller
             }
             
             try {
+                $imageOptions = array_merge(
+                    config('images.featured_image'),
+                    ['greyscale' => $request->boolean('featured_image_greyscale')]
+                );
                 $updateData['featured_image'] = $imageService->uploadImage(
                     $request->file('featured_image'),
-                    config('images.featured_image')
+                    $imageOptions
                 );
                 $updateData['featured_image_alt'] = $request->featured_image_alt;
             } catch (\Exception $e) {
@@ -179,9 +197,13 @@ class UserController extends Controller
 
         if ($request->hasFile('gallery_images')) {
             try {
+                $galleryOptions = array_merge(
+                    config('images.gallery_image'),
+                    ['greyscale' => $request->boolean('gallery_images_greyscale')]
+                );
                 $newGalleryPaths = $imageService->uploadMultipleImages(
                     $request->file('gallery_images'),
-                    config('images.gallery_image')
+                    $galleryOptions
                 );
                 
                 $currentGallery = $updateData['gallery_images'] ?? $post->gallery_images ?? [];

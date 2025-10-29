@@ -29,35 +29,53 @@ class ImageService
      */
     public function uploadImage(UploadedFile $file, array $options = []): string
     {
-        $options = array_merge([
-            'width' => 800,
-            'height' => 600,
-            'quality' => 85,
-            'format' => 'webp'
-        ], $options);
-
-        // Generate unique filename
-        $filename = $this->generateFilename($file, $options['format']);
-        $fullPath = $this->path . '/' . $filename;
-
-        // Process image
-        $image = $this->manager->read($file->getPathname());
+        // Increase memory limit temporarily for image processing
+        $originalMemoryLimit = ini_get('memory_limit');
+        ini_set('memory_limit', '256M');
         
-        // Resize while maintaining aspect ratio
-        $image->scale(width: $options['width'], height: $options['height']);
-        
-        // Encode to specified format with quality
-        $encoded = match($options['format']) {
-            'webp' => $image->encode(new WebpEncoder($options['quality'])),
-            'jpeg', 'jpg' => $image->encode(new JpegEncoder($options['quality'])),
-            'png' => $image->encode(new PngEncoder()),
-            default => $image->encode(new WebpEncoder($options['quality']))
-        };
-        
-        // Store the processed image
-        Storage::disk($this->disk)->put($fullPath, $encoded);
+        try {
+            $options = array_merge([
+                'width' => 800,
+                'height' => 600,
+                'quality' => 85,
+                'format' => 'webp'
+            ], $options);
 
-        return $fullPath;
+            // Generate unique filename
+            $filename = $this->generateFilename($file, $options['format']);
+            $fullPath = $this->path . '/' . $filename;
+
+            // Process image with memory optimization
+            $image = $this->manager->read($file->getPathname());
+            
+            // Resize first to reduce memory usage before other operations
+            $image->scale(width: $options['width'], height: $options['height']);
+            
+            // Apply greyscale if requested (after resize to save memory)
+            if (isset($options['greyscale']) && $options['greyscale']) {
+                $image->greyscale();
+            }
+            
+            // Encode to specified format with quality
+            $encoded = match($options['format']) {
+                'webp' => $image->encode(new WebpEncoder($options['quality'])),
+                'jpeg', 'jpg' => $image->encode(new JpegEncoder($options['quality'])),
+                'png' => $image->encode(new PngEncoder()),
+                default => $image->encode(new WebpEncoder($options['quality']))
+            };
+            
+            // Store the processed image
+            Storage::disk($this->disk)->put($fullPath, $encoded);
+            
+            // Free memory
+            unset($image, $encoded);
+            
+            return $fullPath;
+            
+        } finally {
+            // Restore original memory limit
+            ini_set('memory_limit', $originalMemoryLimit);
+        }
     }
 
     /**
@@ -70,6 +88,11 @@ class ImageService
         foreach ($files as $file) {
             if ($file instanceof UploadedFile && $file->isValid()) {
                 $uploadedPaths[] = $this->uploadImage($file, $options);
+                
+                // Force garbage collection after each image to free memory
+                if (function_exists('gc_collect_cycles')) {
+                    gc_collect_cycles();
+                }
             }
         }
         
@@ -81,36 +104,55 @@ class ImageService
      */
     public function createThumbnail(string $imagePath, array $options = []): string
     {
-        $options = array_merge([
-            'width' => 300,
-            'height' => 200,
-            'quality' => 80,
-            'suffix' => '_thumb'
-        ], $options);
+        // Increase memory limit temporarily for image processing
+        $originalMemoryLimit = ini_get('memory_limit');
+        ini_set('memory_limit', '256M');
+        
+        try {
+            $options = array_merge([
+                'width' => 300,
+                'height' => 200,
+                'quality' => 80,
+                'suffix' => '_thumb'
+            ], $options);
 
-        $pathInfo = pathinfo($imagePath);
-        $thumbnailPath = $pathInfo['dirname'] . '/' . $pathInfo['filename'] . $options['suffix'] . '.' . $pathInfo['extension'];
+            $pathInfo = pathinfo($imagePath);
+            $thumbnailPath = $pathInfo['dirname'] . '/' . $pathInfo['filename'] . $options['suffix'] . '.' . $pathInfo['extension'];
 
-        if (Storage::disk($this->disk)->exists($imagePath)) {
-            $imageContent = Storage::disk($this->disk)->get($imagePath);
-            $image = $this->manager->read($imageContent);
+            if (Storage::disk($this->disk)->exists($imagePath)) {
+                $imageContent = Storage::disk($this->disk)->get($imagePath);
+                $image = $this->manager->read($imageContent);
+                
+                // Resize first to reduce memory usage
+                $image->scale(width: $options['width'], height: $options['height']);
+                
+                // Apply greyscale if requested (after resize to save memory)
+                if (isset($options['greyscale']) && $options['greyscale']) {
+                    $image->greyscale();
+                }
+                
+                $extension = pathinfo($imagePath, PATHINFO_EXTENSION);
+                $encoded = match($extension) {
+                    'webp' => $image->encode(new WebpEncoder($options['quality'])),
+                    'jpeg', 'jpg' => $image->encode(new JpegEncoder($options['quality'])),
+                    'png' => $image->encode(new PngEncoder()),
+                    default => $image->encode(new WebpEncoder($options['quality']))
+                };
+                
+                Storage::disk($this->disk)->put($thumbnailPath, $encoded);
+                
+                // Free memory
+                unset($image, $encoded, $imageContent);
+                
+                return $thumbnailPath;
+            }
+
+            throw new \Exception('Original image not found: ' . $imagePath);
             
-            $image->scale(width: $options['width'], height: $options['height']);
-            
-            $extension = pathinfo($imagePath, PATHINFO_EXTENSION);
-            $encoded = match($extension) {
-                'webp' => $image->encode(new WebpEncoder($options['quality'])),
-                'jpeg', 'jpg' => $image->encode(new JpegEncoder($options['quality'])),
-                'png' => $image->encode(new PngEncoder()),
-                default => $image->encode(new WebpEncoder($options['quality']))
-            };
-            
-            Storage::disk($this->disk)->put($thumbnailPath, $encoded);
-            
-            return $thumbnailPath;
+        } finally {
+            // Restore original memory limit
+            ini_set('memory_limit', $originalMemoryLimit);
         }
-
-        throw new \Exception('Original image not found: ' . $imagePath);
     }
 
     /**
@@ -158,7 +200,7 @@ class ImageService
     public function validateImage(UploadedFile $file): bool
     {
         $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        $maxSize = 5 * 1024 * 1024; // 5MB
+        $maxSize = 3 * 1024 * 1024; // Reduced to 3MB to prevent memory issues
         
         return in_array($file->getMimeType(), $allowedMimes) && 
                $file->getSize() <= $maxSize &&
@@ -186,10 +228,15 @@ class ImageService
             $imageContent = Storage::disk($this->disk)->get($imagePath);
             $image = $this->manager->read($imageContent);
             
-            return [
+            $dimensions = [
                 'width' => $image->width(),
                 'height' => $image->height()
             ];
+            
+            // Free memory
+            unset($image, $imageContent);
+            
+            return $dimensions;
         }
         
         return ['width' => 0, 'height' => 0];

@@ -46,6 +46,7 @@
                                 <table class="table table-hover">
                                     <thead class="table-light">
                                         <tr>
+                                            <th width="80">Image</th>
                                             <th>Title</th>
                                             <th>Category</th>
                                             <th>Author</th>
@@ -59,7 +60,30 @@
                                         @foreach($posts as $post)
                                             <tr>
                                                 <td>
-                                                    <div class="fw-semibold">{{ $post->title }}</div>
+                                                    @if($post->featured_image)
+                                                        <img src="{{ $post->featured_image_url }}" 
+                                                             alt="{{ $post->featured_image_alt ?? $post->title }}" 
+                                                             class="img-thumbnail" 
+                                                             style="width: 60px; height: 60px; object-fit: cover;">
+                                                    @elseif($post->hasImages())
+                                                        <div class="d-flex align-items-center justify-content-center bg-light rounded" 
+                                                             style="width: 60px; height: 60px;">
+                                                            <i class="bi bi-images text-muted"></i>
+                                                        </div>
+                                                    @else
+                                                        <div class="d-flex align-items-center justify-content-center bg-light rounded" 
+                                                             style="width: 60px; height: 60px;">
+                                                            <i class="bi bi-image text-muted"></i>
+                                                        </div>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    <div class="fw-semibold">
+                                                        {{ $post->title }}
+                                                        @if($post->hasImages())
+                                                            <i class="bi bi-camera-fill text-primary ms-1" title="Has images"></i>
+                                                        @endif
+                                                    </div>
                                                     <div class="text-muted small">{{ Str::limit($post->content, 50) }}</div>
                                                 </td>
                                                 <td>

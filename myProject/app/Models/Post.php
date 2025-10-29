@@ -58,6 +58,11 @@ class Post extends Model
         })->toArray();
     }
 
+    public function getGalleryImageUrl($imagePath)
+    {
+        return asset('storage/' . $imagePath);
+    }
+
     public function hasImages()
     {
         return $this->featured_image || ($this->gallery_images && count($this->gallery_images) > 0);

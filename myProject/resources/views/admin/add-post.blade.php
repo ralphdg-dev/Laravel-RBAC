@@ -80,7 +80,7 @@
                                 @error('featured_image')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                                <div class="form-text">Upload a featured image for the post (max 5MB, formats: JPG, PNG, GIF, WebP)</div>
+                                <div class="form-text">Upload a featured image for the post (max 3MB, formats: JPG, PNG, GIF, WebP)</div>
                                 
                                 <!-- Featured Image Preview -->
                                 <div id="featured_image_preview" class="mt-2" style="display: none;">
@@ -94,6 +94,18 @@
                                         @error('featured_image_alt')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
+                                    </div>
+                                    
+                                    <!-- Featured Image Options -->
+                                    <div class="mt-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="featured_image_greyscale" name="featured_image_greyscale" value="1"
+                                                {{ old('featured_image_greyscale') ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="featured_image_greyscale">
+                                                <i class="bi bi-palette me-1"></i>Apply greyscale filter
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -116,7 +128,22 @@
                                 @error('gallery_images.*')
                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                 @enderror
-                                <div class="form-text">Select multiple images at once (max 5MB each, up to 10 images total)</div>
+                                <div class="form-text">
+                                    <strong>To select multiple images:</strong> Hold Ctrl (Windows) or Cmd (Mac) while clicking, or select all images at once in the file dialog. 
+                                    Max 3MB each, up to 10 images total.
+                                </div>
+                                
+                                <!-- Gallery Image Options -->
+                                <div class="mt-2" id="gallery_options" style="display: none;">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                            id="gallery_images_greyscale" name="gallery_images_greyscale" value="1"
+                                            {{ old('gallery_images_greyscale') ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="gallery_images_greyscale">
+                                            <i class="bi bi-palette me-1"></i>Apply greyscale filter to all gallery images
+                                        </label>
+                                    </div>
+                                </div>
                                 
                                 <!-- Gallery Preview -->
                                 <div id="gallery_preview" class="mt-2 row g-2" style="display: none;"></div>
@@ -176,12 +203,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     galleryImagesInput.addEventListener('change', function(e) {
         const files = Array.from(e.target.files);
+        const galleryOptions = document.getElementById('gallery_options');
         galleryPreview.innerHTML = '';
         
         if (files.length > 0) {
             // Validate files
             for (let file of files) {
-                if (!validateFileSize([file], 5)) {
+                if (file.size > 3 * 1024 * 1024) {
+                    alert(`File "${file.name}" is too large. Maximum size is 3MB.`);
                     e.target.value = '';
                     return;
                 }
@@ -194,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             galleryPreview.style.display = 'block';
+            galleryOptions.style.display = 'block';
             clearGalleryBtn.style.display = 'inline-block';
             
             files.forEach((file, index) => {
@@ -214,21 +244,24 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         } else {
             galleryPreview.style.display = 'none';
+            galleryOptions.style.display = 'none';
             clearGalleryBtn.style.display = 'none';
         }
     });
 
     clearGalleryBtn.addEventListener('click', function() {
         if (confirm('Remove all gallery images?')) {
+            const galleryOptions = document.getElementById('gallery_options');
             galleryImagesInput.value = '';
             galleryPreview.innerHTML = '';
             galleryPreview.style.display = 'none';
+            galleryOptions.style.display = 'none';
             clearGalleryBtn.style.display = 'none';
         }
     });
 
     // File size validation
-    function validateFileSize(files, maxSizeMB = 5) {
+    function validateFileSize(files, maxSizeMB = 3) {
         for (let i = 0; i < files.length; i++) {
             if (files[i].size > maxSizeMB * 1024 * 1024) {
                 alert(`File "${files[i].name}" is too large. Maximum size is ${maxSizeMB}MB.`);
