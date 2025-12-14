@@ -123,11 +123,10 @@
                                                                 </li>
                                                                 <li><hr class="dropdown-divider"></li>
                                                                 <li>
-                                                                    <form action="{{ route('admin.posts.force-delete', $post->id) }}" method="POST" class="d-inline" 
-                                                                          onsubmit="return confirm('Are you sure you want to permanently delete this post? This action cannot be undone.')">
+                                                                    <form action="{{ route('admin.posts.force-delete', $post->id) }}" method="POST" class="d-inline">
                                                                         @csrf
                                                                         @method('DELETE')
-                                                                        <button type="submit" class="dropdown-item text-danger">
+                                                                        <button type="button" class="dropdown-item text-danger btn-force-delete" data-post-title="{{ $post->title }}">
                                                                             <i class="bi bi-trash3 me-2"></i>Delete Permanently
                                                                         </button>
                                                                     </form>
@@ -143,9 +142,9 @@
                                                             <ul class="dropdown-menu dropdown-menu-end" style="z-index: 1050;">
                                                                 @if($post->status === 'pending')
                                                                     <li>
-                                                                        <form action="{{ route('admin.posts.update', $post) }}" method="POST" class="d-inline">
+                                                                        <form action="{{ route('admin.posts.updateStatus', $post) }}" method="POST" class="d-inline">
                                                                             @csrf
-                                                                            @method('PUT')
+                                                                            @method('PATCH')
                                                                             <input type="hidden" name="status" value="approved">
                                                                             <button type="submit" class="dropdown-item text-success">
                                                                                 <i class="bi bi-check-circle me-2"></i>Approve
@@ -153,9 +152,9 @@
                                                                         </form>
                                                                     </li>
                                                                     <li>
-                                                                        <form action="{{ route('admin.posts.update', $post) }}" method="POST" class="d-inline">
+                                                                        <form action="{{ route('admin.posts.updateStatus', $post) }}" method="POST" class="d-inline">
                                                                             @csrf
-                                                                            @method('PUT')
+                                                                            @method('PATCH')
                                                                             <input type="hidden" name="status" value="rejected">
                                                                             <button type="submit" class="dropdown-item text-danger">
                                                                                 <i class="bi bi-x-circle me-2"></i>Reject
@@ -176,11 +175,10 @@
                                                                 </li>
                                                                 <li><hr class="dropdown-divider"></li>
                                                                 <li>
-                                                                    <form action="{{ route('admin.posts.destroy', $post) }}" method="POST" class="d-inline" 
-                                                                          onsubmit="return confirm('Are you sure you want to move this post to trash?')">
+                                                                    <form action="{{ route('admin.posts.destroy', $post) }}" method="POST" class="d-inline">
                                                                         @csrf
                                                                         @method('DELETE')
-                                                                        <button type="submit" class="dropdown-item text-warning">
+                                                                        <button type="button" class="dropdown-item text-warning btn-soft-delete" data-post-title="{{ $post->title }}">
                                                                             <i class="bi bi-trash me-2"></i>Move to Trash
                                                                         </button>
                                                                     </form>
@@ -235,4 +233,110 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="softDeleteModal" tabindex="-1" aria-labelledby="softDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning-subtle">
+                    <h5 class="modal-title" id="softDeleteModalLabel">
+                        <i class="bi bi-trash me-2"></i>Move Post to Trash
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0 soft-delete-modal-text">Are you sure you want to move this post to trash?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning btn-sm" id="softDeleteConfirmBtn">
+                        <i class="bi bi-trash me-1"></i>Yes, move to trash
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="forceDeleteModal" tabindex="-1" aria-labelledby="forceDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger-subtle">
+                    <h5 class="modal-title" id="forceDeleteModalLabel">
+                        <i class="bi bi-trash3 me-2"></i>Permanently Delete Post
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0 force-delete-modal-text">Are you sure you want to permanently delete this post? This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="forceDeleteConfirmBtn">
+                        <i class="bi bi-trash3 me-1"></i>Yes, delete permanently
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var formToSubmit = null;
+
+                var softDeleteModalEl = document.getElementById('softDeleteModal');
+                if (softDeleteModalEl) {
+                    var softConfirmBtn = softDeleteModalEl.querySelector('#softDeleteConfirmBtn');
+                    var softBodyText = softDeleteModalEl.querySelector('.soft-delete-modal-text');
+                    document.querySelectorAll('.btn-soft-delete').forEach(function (btn) {
+                        btn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            formToSubmit = btn.closest('form');
+                            var title = btn.getAttribute('data-post-title');
+                            if (title && softBodyText) {
+                                softBodyText.textContent = 'Are you sure you want to move "' + title + '" to trash?';
+                            } else if (softBodyText) {
+                                softBodyText.textContent = 'Are you sure you want to move this post to trash?';
+                            }
+                            var modal = new bootstrap.Modal(softDeleteModalEl);
+                            modal.show();
+                        });
+                    });
+                    if (softConfirmBtn) {
+                        softConfirmBtn.addEventListener('click', function () {
+                            if (formToSubmit) {
+                                formToSubmit.submit();
+                            }
+                        });
+                    }
+                }
+
+                var forceDeleteModalEl = document.getElementById('forceDeleteModal');
+                if (forceDeleteModalEl) {
+                    var forceConfirmBtn = forceDeleteModalEl.querySelector('#forceDeleteConfirmBtn');
+                    var forceBodyText = forceDeleteModalEl.querySelector('.force-delete-modal-text');
+                    document.querySelectorAll('.btn-force-delete').forEach(function (btn) {
+                        btn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            formToSubmit = btn.closest('form');
+                            var title = btn.getAttribute('data-post-title');
+                            if (title && forceBodyText) {
+                                forceBodyText.textContent = 'Are you sure you want to permanently delete "' + title + '"? This action cannot be undone.';
+                            } else if (forceBodyText) {
+                                forceBodyText.textContent = 'Are you sure you want to permanently delete this post? This action cannot be undone.';
+                            }
+                            var modal = new bootstrap.Modal(forceDeleteModalEl);
+                            modal.show();
+                        });
+                    });
+                    if (forceConfirmBtn) {
+                        forceConfirmBtn.addEventListener('click', function () {
+                            if (formToSubmit) {
+                                formToSubmit.submit();
+                            }
+                        });
+                    }
+                }
+            });
+        </script>
+    @endpush
 @endsection

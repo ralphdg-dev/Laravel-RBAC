@@ -14,31 +14,31 @@
                             <i class="bi bi-eye me-2"></i>View Post
                         </h2>
                     </div>
-                    <div class="btn-group" role="group">
+                    <div class="d-flex align-items-center gap-2">
                         <a href="{{ route('admin.posts.edit', $post) }}" class="btn btn-primary">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </a>
-                        
+
                         @if($post->status !== 'approved')
-                        <form action="{{ route('admin.posts.updateStatus', $post) }}" method="POST" class="d-inline">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="approved">
-                            <button type="submit" class="btn btn-success" onclick="return confirm('Approve this post?')">
-                                <i class="bi bi-check-circle me-1"></i>Approve
-                            </button>
-                        </form>
+                            <form action="{{ route('admin.posts.updateStatus', $post) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="status" value="approved">
+                                <button type="submit" class="btn btn-success" onclick="return confirm('Approve this post?')">
+                                    <i class="bi bi-check-circle me-1"></i>Approve
+                                </button>
+                            </form>
                         @endif
-                        
+
                         @if($post->status !== 'rejected')
-                        <form action="{{ route('admin.posts.updateStatus', $post) }}" method="POST" class="d-inline">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="rejected">
-                            <button type="submit" class="btn btn-danger" onclick="return confirm('Reject this post?')">
-                                <i class="bi bi-x-circle me-1"></i>Reject
-                            </button>
-                        </form>
+                            <form action="{{ route('admin.posts.updateStatus', $post) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="status" value="rejected">
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Reject this post?')">
+                                    <i class="bi bi-x-circle me-1"></i>Reject
+                                </button>
+                            </form>
                         @endif
                     </div>
                 </div>
@@ -82,10 +82,9 @@
                             <div class="mb-4">
                                 <h6 class="text-muted">Featured Image</h6>
                                 <div class="text-center">
-                                    <img src="{{ $post->featured_image_url }}" 
-                                         alt="{{ $post->featured_image_alt ?? $post->title }}" 
-                                         class="img-fluid rounded shadow-sm" 
-                                         style="max-height: 400px; object-fit: cover;">
+                                    <img src="{{ $post->featured_image_url }}"
+                                        alt="{{ $post->featured_image_alt ?? $post->title }}"
+                                        class="img-fluid rounded shadow-sm" style="max-height: 400px; object-fit: cover;">
                                     @if($post->featured_image_alt)
                                         <p class="text-muted small mt-2">{{ $post->featured_image_alt }}</p>
                                     @endif
@@ -101,14 +100,13 @@
                                     @foreach($post->gallery_images as $index => $image)
                                         <div class="col-md-3 col-sm-4 col-6">
                                             <div class="position-relative">
-                                                <img src="{{ $post->getGalleryImageUrl($image) }}" 
-                                                     alt="Gallery image {{ $index + 1 }}" 
-                                                     class="img-fluid rounded shadow-sm gallery-image" 
-                                                     style="height: 150px; width: 100%; object-fit: cover; cursor: pointer;"
-                                                     data-bs-toggle="modal" 
-                                                     data-bs-target="#galleryModal"
-                                                     data-image-src="{{ $post->getGalleryImageUrl($image) }}"
-                                                     data-image-index="{{ $index }}">
+                                                <img src="{{ $post->getGalleryImageUrl($image) }}"
+                                                    alt="Gallery image {{ $index + 1 }}"
+                                                    class="img-fluid rounded shadow-sm gallery-image"
+                                                    style="height: 150px; width: 100%; object-fit: cover; cursor: pointer;"
+                                                    data-bs-toggle="modal" data-bs-target="#galleryModal"
+                                                    data-image-src="{{ $post->getGalleryImageUrl($image) }}"
+                                                    data-image-index="{{ $index }}">
                                             </div>
                                         </div>
                                     @endforeach
@@ -125,7 +123,8 @@
 
                 {{-- Gallery Modal --}}
                 @if($post->gallery_images && count($post->gallery_images) > 0)
-                    <div class="modal fade" id="galleryModal" tabindex="-1" aria-labelledby="galleryModalLabel" aria-hidden="true">
+                    <div class="modal fade" id="galleryModal" tabindex="-1" aria-labelledby="galleryModalLabel"
+                        aria-hidden="true">
                         <div class="modal-dialog modal-lg modal-dialog-centered">
                             <div class="modal-content">
                                 <div class="modal-header">
@@ -149,45 +148,46 @@
                     </div>
 
                     <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            const galleryImages = @json(array_map(function($image) use ($post) { return $post->getGalleryImageUrl($image); }, $post->gallery_images));
+                        document.addEventListener('DOMContentLoaded', function () {
+                            const galleryImages = @json(array_map(function ($image) use ($post) {
+                            return $post->getGalleryImageUrl($image); }, $post->gallery_images));
                             let currentImageIndex = 0;
-                            
+
                             const modalImage = document.getElementById('modalImage');
                             const imageCounter = document.getElementById('imageCounter');
                             const prevBtn = document.getElementById('prevImage');
                             const nextBtn = document.getElementById('nextImage');
-                            
+
                             function updateModal(index) {
                                 modalImage.src = galleryImages[index];
                                 imageCounter.textContent = `${index + 1} of ${galleryImages.length}`;
                                 prevBtn.disabled = index === 0;
                                 nextBtn.disabled = index === galleryImages.length - 1;
                             }
-                            
+
                             document.querySelectorAll('.gallery-image').forEach((img, index) => {
-                                img.addEventListener('click', function() {
+                                img.addEventListener('click', function () {
                                     currentImageIndex = index;
                                     updateModal(currentImageIndex);
                                 });
                             });
-                            
-                            prevBtn.addEventListener('click', function() {
+
+                            prevBtn.addEventListener('click', function () {
                                 if (currentImageIndex > 0) {
                                     currentImageIndex--;
                                     updateModal(currentImageIndex);
                                 }
                             });
-                            
-                            nextBtn.addEventListener('click', function() {
+
+                            nextBtn.addEventListener('click', function () {
                                 if (currentImageIndex < galleryImages.length - 1) {
                                     currentImageIndex++;
                                     updateModal(currentImageIndex);
                                 }
                             });
-                            
+
                             // Keyboard navigation
-                            document.addEventListener('keydown', function(e) {
+                            document.addEventListener('keydown', function (e) {
                                 if (document.getElementById('galleryModal').classList.contains('show')) {
                                     if (e.key === 'ArrowLeft' && currentImageIndex > 0) {
                                         currentImageIndex--;

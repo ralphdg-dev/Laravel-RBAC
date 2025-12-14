@@ -976,6 +976,34 @@
     </div>
     @endif
 
+    <!-- Delete Post Modal & Form -->
+    <form id="deletePostForm" action="{{ route('user.posts.destroy', $post) }}" method="POST" class="d-none">
+        @csrf
+        @method('DELETE')
+    </form>
+
+    <div class="modal fade" id="userPostDeleteModal" tabindex="-1" aria-labelledby="userPostDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger-subtle">
+                    <h5 class="modal-title" id="userPostDeleteModalLabel">
+                        <i class="bi bi-trash me-2"></i>Delete Post
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Are you sure you want to delete this post? This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="userPostDeleteConfirmBtn">
+                        <i class="bi bi-trash me-1"></i>Yes, delete post
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Simple Like functionality
         function toggleLike() {
@@ -1328,32 +1356,12 @@
         }
 
         function deletePost() {
-            if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
-                // Show loading state
-                const deleteBtn = event.target;
-                deleteBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Deleting...';
-                deleteBtn.disabled = true;
-                
-                // Create and submit form
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '{{ route("user.posts.destroy", $post) }}';
-                
-                const csrfToken = document.createElement('input');
-                csrfToken.type = 'hidden';
-                csrfToken.name = '_token';
-                csrfToken.value = '{{ csrf_token() }}';
-                
-                const methodField = document.createElement('input');
-                methodField.type = 'hidden';
-                methodField.name = '_method';
-                methodField.value = 'DELETE';
-                
-                form.appendChild(csrfToken);
-                form.appendChild(methodField);
-                document.body.appendChild(form);
-                form.submit();
+            const modalEl = document.getElementById('userPostDeleteModal');
+            if (!modalEl) {
+                return;
             }
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
         }
 
         // Initialize page features
@@ -1383,6 +1391,16 @@
                 floatingBtn.style.opacity = '0';
                 floatingBtn.style.pointerEvents = 'none';
                 floatingBtn.style.transition = 'opacity 0.3s ease';
+            }
+
+            const deleteConfirmBtn = document.getElementById('userPostDeleteConfirmBtn');
+            if (deleteConfirmBtn) {
+                deleteConfirmBtn.addEventListener('click', function () {
+                    const form = document.getElementById('deletePostForm');
+                    if (form) {
+                        form.submit();
+                    }
+                });
             }
             
             // Add keyboard shortcuts

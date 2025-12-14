@@ -33,10 +33,8 @@
                             <div class="col">
                                 <div class="card h-100 shadow-sm">
                                     @if($post->featured_image)
-                                    <img src="{{ $post->featured_image_url }}" 
-                                        alt="{{ $post->featured_image_alt ?: $post->title }}" 
-                                        class="card-img-top" 
-                                        style="height: 200px; object-fit: cover;">
+                                        <img src="{{ $post->featured_image_url }}" alt="{{ $post->featured_image_alt ?: $post->title }}"
+                                            class="card-img-top" style="height: 200px; object-fit: cover;">
                                     @endif
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
@@ -47,7 +45,8 @@
                                                 @endif
                                                 @if($post->user_id === auth()->id())
                                                     <div class="dropdown">
-                                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                                            data-bs-toggle="dropdown">
                                                             <i class="bi bi-three-dots"></i>
                                                         </button>
                                                         <ul class="dropdown-menu">
@@ -56,13 +55,17 @@
                                                                     <i class="bi bi-pencil me-2"></i>Edit
                                                                 </a>
                                                             </li>
-                                                            <li><hr class="dropdown-divider"></li>
                                                             <li>
-                                                                <form action="{{ route('user.posts.destroy', $post) }}" method="POST" class="d-inline" 
-                                                                      onsubmit="return confirm('Are you sure you want to delete this post?')">
+                                                                <hr class="dropdown-divider">
+                                                            </li>
+                                                            <li>
+                                                                <form action="{{ route('user.posts.destroy', $post) }}" method="POST"
+                                                                    class="d-inline">
                                                                     @csrf
                                                                     @method('DELETE')
-                                                                    <button type="submit" class="dropdown-item text-danger">
+                                                                    <button type="button"
+                                                                        class="dropdown-item text-danger btn-user-delete"
+                                                                        data-post-title="{{ $post->title }}">
                                                                         <i class="bi bi-trash me-2"></i>Delete
                                                                     </button>
                                                                 </form>
@@ -76,18 +79,18 @@
                                             {{ Str::limit($post->content, 120) }}
                                         </p>
                                         @if($post->hasImages())
-                                        <div class="mb-2">
-                                            @if($post->featured_image)
-                                                <span class="badge bg-secondary me-1">
-                                                    <i class="bi bi-image me-1"></i>Featured Image
-                                                </span>
-                                            @endif
-                                            @if($post->gallery_images && count($post->gallery_images) > 0)
-                                                <span class="badge bg-secondary">
-                                                    <i class="bi bi-images me-1"></i>{{ count($post->gallery_images) }} Gallery Images
-                                                </span>
-                                            @endif
-                                        </div>
+                                            <div class="mb-2">
+                                                @if($post->featured_image)
+                                                    <span class="badge bg-secondary me-1">
+                                                        <i class="bi bi-image me-1"></i>Featured Image
+                                                    </span>
+                                                @endif
+                                                @if($post->gallery_images && count($post->gallery_images) > 0)
+                                                    <span class="badge bg-secondary">
+                                                        <i class="bi bi-images me-1"></i>{{ count($post->gallery_images) }} Gallery Images
+                                                    </span>
+                                                @endif
+                                            </div>
                                         @endif
                                         <div class="mt-auto">
                                             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -145,20 +148,80 @@
         </div>
     </div>
 
+    <div class="modal fade" id="userDeleteModal" tabindex="-1" aria-labelledby="userDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger-subtle">
+                    <h5 class="modal-title" id="userDeleteModalLabel">
+                        <i class="bi bi-trash me-2"></i>Delete Post
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0 user-delete-modal-text">Are you sure you want to delete this post?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="userDeleteConfirmBtn">
+                        <i class="bi bi-trash me-1"></i>Yes, delete post
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var deleteModal = document.getElementById('userDeleteModal');
+                if (!deleteModal) {
+                    return;
+                }
+                var formToSubmit = null;
+                var confirmBtn = deleteModal.querySelector('#userDeleteConfirmBtn');
+                var bodyText = deleteModal.querySelector('.user-delete-modal-text');
+                document.querySelectorAll('.btn-user-delete').forEach(function (btn) {
+                    btn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        formToSubmit = btn.closest('form');
+                        var title = btn.getAttribute('data-post-title');
+                        if (title && bodyText) {
+                            bodyText.textContent = 'Are you sure you want to delete "' + title + '"? This action cannot be undone.';
+                        } else if (bodyText) {
+                            bodyText.textContent = 'Are you sure you want to delete this post? This action cannot be undone.';
+                        }
+                        var modal = new bootstrap.Modal(deleteModal);
+                        modal.show();
+                    });
+                });
+                if (confirmBtn) {
+                    confirmBtn.addEventListener('click', function () {
+                        if (formToSubmit) {
+                            formToSubmit.submit();
+                        }
+                    });
+                }
+            });
+        </script>
+    @endpush
+
     <style>
         .pagination-sm .page-link {
             padding: 0.375rem 0.75rem;
             font-size: 0.875rem;
         }
+
         .pagination .page-link {
             border-radius: 0.375rem !important;
             margin: 0 2px;
             border: 1px solid #dee2e6;
         }
+
         .pagination .page-item.active .page-link {
             background-color: #0d6efd;
             border-color: #0d6efd;
         }
+
         .pagination .page-link:hover {
             background-color: #e9ecef;
             border-color: #adb5bd;
